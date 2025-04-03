@@ -3,7 +3,7 @@
 
 defaults: &defaults
   site_title: True Colors
-  site_short_description: ''
+  site_short_description: This is a short description.
   site_description: ''
   site_extended_description: ''
   site_terms: ''

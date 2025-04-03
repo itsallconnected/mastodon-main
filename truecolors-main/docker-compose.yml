@@ -1,6 +1,7 @@
 # This file is designed for production server deployment, not local development work
 # For a containerized local dev environment, see: https://github.com/mastodon/mastodon/blob/main/docs/DEVELOPMENT.md#docker
 
+version: '3'
 services:
   db:
     restart: always
@@ -57,12 +58,10 @@ services:
   #     - '127.0.0.1:9200:9200'
 
   web:
-    # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
-    # build: .
-    image: ghcr.io/mastodon/mastodon:v4.3.6
+    image: tootsuite/mastodon:latest
     restart: always
     env_file: .env.production
-    command: bundle exec puma -C config/puma.rb
+    command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
     networks:
       - external_network
       - internal_network
@@ -76,17 +75,15 @@ services:
       - redis
       # - es
     volumes:
-      - ./public/system:/mastodon/public/system
+      - /opt/mastodon/public/system:/mastodon/public/system
+      - /opt/mastodon/public/assets:/mastodon/public/assets
+      - /opt/mastodon/public/packs:/mastodon/public/packs
 
   streaming:
-    # You can uncomment the following lines if you want to not use the prebuilt image, for example if you have local code changes
-    # build:
-    #   dockerfile: ./streaming/Dockerfile
-    #   context: .
-    image: ghcr.io/mastodon/mastodon-streaming:v4.3.6
+    image: tootsuite/mastodon:latest
     restart: always
     env_file: .env.production
-    command: node ./streaming/index.js
+    command: node ./streaming
     networks:
       - external_network
       - internal_network
@@ -100,9 +97,7 @@ services:
       - redis
 
   sidekiq:
-    # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
-    # build: .
-    image: ghcr.io/mastodon/mastodon:v4.3.6
+    image: tootsuite/mastodon:latest
     restart: always
     env_file: .env.production
     command: bundle exec sidekiq
@@ -113,7 +108,7 @@ services:
       - external_network
       - internal_network
     volumes:
-      - ./public/system:/mastodon/public/system
+      - /opt/mastodon/public/system:/mastodon/public/system
     healthcheck:
       test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
 
