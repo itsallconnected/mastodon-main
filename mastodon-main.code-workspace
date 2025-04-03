@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../n8n-master/n8n-master"
+		}
+	],
+	"settings": {}
+}
