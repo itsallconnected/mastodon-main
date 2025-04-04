@@ -135,6 +135,8 @@ class User < ApplicationRecord
   before_create :set_age_verified_at
   after_commit :send_pending_devise_notifications
   after_create_commit :trigger_webhooks
+  after_create_commit :create_xmpp_credentials
+  before_destroy :remove_xmpp_credentials
 
   normalizes :locale, with: ->(locale) { I18n.available_locales.exclude?(locale.to_sym) ? nil : locale }
   normalizes :time_zone, with: ->(time_zone) { ActiveSupport::TimeZone[time_zone].nil? ? nil : time_zone }
@@ -555,5 +557,28 @@ class User < ApplicationRecord
 
   def trigger_webhooks
     TriggerWebhookWorker.perform_async('account.created', 'Account', account_id)
+  end
+
+  def create_xmpp_credentials
+    return if account.nil? || account.username.blank?
+    
+    domain = ENV.fetch('XMPP_DOMAIN', 'localhost')
+    jid = "#{account.username}@#{domain}"
+    
+    # Create the XMPP credential
+    XmppCredential.create!(user: self, jid: jid)
+    
+    # Register with the XMPP server
+    XmppRegistrationWorker.perform_async(id)
+  end
+
+  def remove_xmpp_credentials
+    return if xmpp_credential.nil?
+    
+    # Store the JID for deletion on the server
+    jid = xmpp_credential.jid
+    
+    # Delete from the XMPP server (the credential itself will be deleted by the dependent: :destroy relationship)
+    XmppDeletionWorker.perform_async(jid)
   end
 end

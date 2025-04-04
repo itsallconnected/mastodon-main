@@ -159,6 +159,7 @@ class Account < ApplicationRecord
   scope :duplicate_uris, -> { select(:uri, Arel.star.count).group(:uri).having(Arel.star.count.gt(1)) }
 
   after_update_commit :trigger_update_webhooks
+  after_update_commit :update_xmpp_credentials, if: :saved_change_to_username?
 
   delegate :email,
            :unconfirmed_email,
@@ -499,5 +500,19 @@ class Account < ApplicationRecord
   # NOTE: the `account.created` webhook is triggered by the `User` model, not `Account`.
   def trigger_update_webhooks
     TriggerWebhookWorker.perform_async('account.updated', 'Account', id) if local?
+  end
+
+  def update_xmpp_credentials
+    return unless local? && user.present? && user.xmpp_credential.present?
+    
+    old_jid = user.xmpp_credential.jid
+    domain = ENV.fetch('XMPP_DOMAIN', 'localhost')
+    new_jid = "#{username}@#{domain}"
+    
+    # Update the JID in the credential
+    user.xmpp_credential.update(jid: new_jid)
+    
+    # Schedule worker to update the XMPP user
+    XmppUsernameUpdateWorker.perform_async(user.id, old_jid, new_jid)
   end
 end

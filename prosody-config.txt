@@ -12,7 +12,20 @@ VirtualHost "redcted.social"
         "bosh"; -- Enable BOSH
         "websocket"; -- Enable WebSockets
         "http_upload"; -- File upload
+        "rest"; -- HTTP REST API for account management
+        "saslauth"; -- Authentication
+        "omemo_all_access"; -- Allow OMEMO encryption
     }
+
+-- Admin credentials for REST API (used by Mastodon to create/update XMPP accounts)
+admins = { "admin@redcted.social" }
+
+-- Define REST API endpoint
+http_endpoints = {
+    "/rest" = {
+        module = "rest";
+    }
+}
 
 Component "upload.redcted.social" "http_upload"
 
