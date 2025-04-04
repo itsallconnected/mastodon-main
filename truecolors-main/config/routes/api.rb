@@ -110,6 +110,12 @@ namespace :api, format: false do
       get :check_confirmation, to: 'confirmations#check'
     end
 
+    # XMPP Chat API
+    namespace :xmpp do
+      get :credentials, to: 'xmpp#show'
+      post :regenerate, to: 'xmpp#regenerate'
+    end
+
     resource :instance, only: [:show] do
       scope module: :instances do
         resources :peers, only: [:index]
@@ -234,11 +240,6 @@ namespace :api, format: false do
 
     namespace :push do
       resource :subscription, only: [:create, :show, :update, :destroy]
-    end
-
-    # XMPP Chat API
-    namespace :xmpp do
-      get :credentials, to: 'xmpp#credentials'
     end
 
     namespace :admin do

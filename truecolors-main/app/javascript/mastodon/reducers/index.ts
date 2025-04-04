@@ -7,6 +7,7 @@ import { accountsReducer } from './accounts';
 import accounts_map from './accounts_map';
 import { alertsReducer } from './alerts';
 import announcements from './announcements';
+import chat from './chat';
 import { composeReducer } from './compose';
 import contexts from './contexts';
 import conversations from './conversations';
@@ -39,9 +40,11 @@ import { suggestionsReducer } from './suggestions';
 import timelines from './timelines';
 import trends from './trends';
 import user_lists from './user_lists';
+import xmpp from './xmpp';
 
 const reducers = {
   announcements,
+  chat,
   dropdownMenu: dropdownMenuReducer,
   timelines,
   meta,
@@ -78,6 +81,7 @@ const reducers = {
   followed_tags,
   notificationPolicy: notificationPolicyReducer,
   notificationRequests: notificationRequestsReducer,
+  xmpp,
 };
 
 // We want the root state to be an ImmutableRecord, which is an object with a defined list of keys,

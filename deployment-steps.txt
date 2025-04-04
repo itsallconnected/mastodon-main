@@ -1,0 +1,100 @@
+# Deployment Steps for Mastodon Chat with XMPP/Prosody
+
+## 1. Apply the Nginx configuration
+```bash
+# Edit/replace the Nginx site configuration
+sudo nano /etc/nginx/sites-available/redcted.social
+
+# Make sure the site is enabled
+sudo ln -sf /etc/nginx/sites-available/redcted.social /etc/nginx/sites-enabled/
+
+# Test and reload Nginx
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 2. Configure Prosody
+```bash
+# Install Prosody if not already installed
+sudo apt-get update
+sudo apt-get install -y prosody
+
+# Apply the Prosody configuration
+sudo nano /etc/prosody/conf.d/redcted.social.cfg.lua
+
+# Create necessary directories
+sudo mkdir -p /var/lib/prosody/upload.redcted.social
+sudo chown -R prosody:prosody /var/lib/prosody/upload.redcted.social
+
+# Ensure Prosody modules are installed
+sudo apt-get install -y prosody-modules
+
+# Restart Prosody
+sudo systemctl restart prosody
+sudo systemctl status prosody
+```
+
+## 3. Set up Converse.js for Mastodon
+```bash
+# Create the directory structure for Converse.js assets
+sudo mkdir -p /var/www/html/converse-assets
+
+# Download Converse.js (adjust version as needed)
+cd /tmp
+wget https://github.com/conversejs/converse.js/releases/download/v10.1.6/converse.js-10.1.6.tar.gz
+tar -xzf converse.js-10.1.6.tar.gz
+sudo cp -r converse.js-10.1.6/dist/* /var/www/html/converse-assets/
+
+# Copy the Converse configuration
+sudo nano /var/www/html/converse-assets/converse-config.js
+
+# Set proper permissions
+sudo chown -R www-data:www-data /var/www/html
+```
+
+## 4. Create test user in Prosody
+```bash
+# Create a test user
+sudo prosodyctl register testuser redcted.social YourStrongPassword
+
+# Check if the user was created successfully
+sudo prosodyctl status
+```
+
+## 5. Add firewall rules
+```bash
+# Allow XMPP, BOSH, and WebSocket traffic
+sudo ufw allow 5222/tcp  # XMPP client connections
+sudo ufw allow 5269/tcp  # XMPP server-to-server
+sudo ufw allow 5280/tcp  # HTTP for BOSH/WebSocket
+sudo ufw status
+```
+
+## 6. Set up SSL (once available)
+```bash
+# Once you have your SSL certificates:
+# 1. Update Nginx configuration to use SSL
+# 2. Update Prosody configuration to use SSL
+# 3. Update Converse.js configuration to use HTTPS and WSS
+```
+
+## 7. Integration with Mastodon
+```bash
+# Clone the Mastodon repository if not already done
+cd /home/mastodon
+git clone https://github.com/mastodon/mastodon.git live
+
+# Follow the code modifications as discussed to add XMPP integration
+```
+
+## 8. Testing
+1. Access https://redcted.social when SSL is ready (or http://redcted.social for now)
+2. Test XMPP connection using a client like Gajim or Converse.js directly
+3. Verify file uploads work through the XMPP server
+4. Test group chat rooms
+
+## 9. Troubleshooting
+- Check Prosody logs: `sudo tail -f /var/log/prosody/prosody.log`
+- Check Nginx logs: `sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log`
+- Check Prosody status: `sudo systemctl status prosody`
+- Check Nginx status: `sudo systemctl status nginx` 

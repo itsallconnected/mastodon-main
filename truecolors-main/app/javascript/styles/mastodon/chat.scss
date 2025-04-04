@@ -1,17 +1,96 @@
-.chat-container {
+.chat-timeline__container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-timeline__loading,
+.chat-timeline__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: var(--primary-text-color--faint);
+  
+  .loading-indicator {
+    margin-bottom: 10px;
+  }
+}
+
+.chat-timeline__error {
+  color: var(--error-text-color);
+}
+
+.chat-timeline__converse {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Converse.js Styling Overrides */
+#converse-container {
   position: relative;
   height: 100%;
   background-color: var(--background-color);
   border-radius: 4px;
   overflow: hidden;
   
-  #conversejs {
-    height: 100%;
-    width: 100%;
+  /* Controlbox styling */
+  .converse-brand__heading {
+    color: var(--primary-text-color);
+    font-weight: 500;
+  }
+  
+  .controlbox {
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    background-color: var(--background-color);
+    
+    .converse-chatboxes {
+      background-color: var(--foreground-color);
+    }
+    
+    .list-item {
+      border-bottom: 1px solid var(--background-color);
+      
+      a {
+        color: var(--primary-text-color);
+        
+        &:hover {
+          background-color: var(--accent-color);
+        }
+      }
+      
+      &.open a, &.current-chat a {
+        background-color: var(--highlight-text-color--opaque);
+      }
+    }
+  }
+  
+  /* Chat box styling */
+  .chatbox {
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    background-color: var(--background-color);
     
     .chat-head {
       background-color: var(--brand-color);
       border-radius: 4px 4px 0 0;
+      
+      .chat-head__name {
+        color: var(--primary-text-color--faint);
+        font-weight: 500;
+      }
     }
     
     .chat-body {
@@ -20,30 +99,16 @@
     
     .chat-content {
       border-radius: 0 0 4px 4px;
-    }
-    
-    // OMEMO encryption indicator styles
-    .chat-encryption-indicator {
-      color: var(--highlight-text-color);
-      
-      &.encrypted {
-        color: var(--valid-value-color);
-      }
-      
-      &.not-encrypted {
-        color: var(--error-value-color);
-      }
-    }
-    
-    // Override default converse.js styles to match Mastodon
-    .chatbox {
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      background-color: var(--background-color);
     }
     
     .message {
       background-color: var(--background-color);
+      border-bottom: 1px solid var(--foreground-color);
+      
+      &:hover {
+        background-color: var(--foreground-color);
+      }
       
       &.chat-msg--encrypted {
         .chat-msg__content {
@@ -58,6 +123,7 @@
     
     .chat-msg__author {
       font-weight: 500;
+      color: var(--primary-text-color);
     }
     
     .chat-msg__content {
@@ -68,9 +134,17 @@
       color: var(--secondary-text-color);
     }
     
+    .message-form {
+      background-color: var(--foreground-color);
+      padding: 10px;
+    }
+    
     .chat-textarea {
       border-radius: 4px;
       border: 1px solid var(--brand-color);
+      background-color: var(--background-color);
+      color: var(--primary-text-color);
+      padding: 8px;
       
       &:focus {
         border-color: var(--highlight-text-color);
@@ -81,26 +155,69 @@
     .message-form__send-button {
       background-color: var(--brand-color);
       color: var(--primary-text-color--faint);
+      border-radius: 4px;
+      border: none;
+      padding: 8px 15px;
+      cursor: pointer;
       
       &:hover {
         background-color: var(--highlight-text-color);
       }
     }
   }
+  
+  /* OMEMO encryption UI */
+  .toggle-omemo {
+    background-color: var(--foreground-color);
+    border-radius: 4px;
+    color: var(--primary-text-color);
+    
+    &.activated {
+      background-color: var(--valid-value-color);
+      color: var(--primary-text-color--faint);
+    }
+  }
+  
+  /* Emoji picker */
+  .emoji-picker {
+    background-color: var(--background-color);
+    border: 1px solid var(--brand-color);
+    border-radius: 4px;
+    
+    .emoji-category {
+      color: var(--primary-text-color);
+    }
+    
+    .emoji-skintone-picker {
+      background-color: var(--foreground-color);
+    }
+  }
 }
 
-// Responsive styles for mobile
+/* Mobile responsiveness */
 @media screen and (max-width: 630px) {
-  .chat-container {
-    height: calc(100vh - 100px);
+  .chat-timeline__container {
+    height: 100vh;
+  }
+  
+  #converse-container {
+    height: calc(100vh - 50px);
     
-    #conversejs {
-      .roster-contacts {
-        display: none;
-      }
+    .controlbox {
+      height: 100%;
+    }
+    
+    .chatbox {
+      height: 100%;
       
       .chat-body {
-        height: calc(100% - 60px);
+        height: calc(100% - 120px);
+      }
+      
+      .message-form {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
       }
     }
   }

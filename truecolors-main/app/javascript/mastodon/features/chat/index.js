@@ -1,126 +1,169 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { defineMessages, injectIntl } from 'react-intl';
-import Column from '../ui/components/column';
-import { fetchResource } from 'mastodon/actions/api';
 import PropTypes from 'prop-types';
-import { debounce } from 'lodash';
+import Column from '../ui/components/column';
+import ColumnHeader from '../../components/column_header';
+import { fetchXmppCredentials } from '../../actions/xmpp';
+import { mountConverse, unmountConverse } from '../../actions/chat';
+import LoadingIndicator from '../../components/loading_indicator';
+import { openModal } from '../../actions/modal';
+import ChatSettingsContainer from './containers/column_settings_container';
 
 const messages = defineMessages({
   title: { id: 'column.chat', defaultMessage: 'Chat' },
+  empty: { id: 'chat.empty', defaultMessage: "You don't have any chats yet. Start a new conversation by clicking the compose button." },
+  loading: { id: 'chat.loading', defaultMessage: 'Loading chat...' },
+  error: { id: 'chat.error', defaultMessage: 'Error loading chat. The XMPP server may be unavailable.' },
+  settings: { id: 'chat.settings.title', defaultMessage: 'Chat settings' },
 });
 
 /**
- * Chat feature component that integrates Converse.js with OMEMO encryption.
- * This component fetches XMPP credentials and initializes the Converse.js chat client.
+ * ChatTimeline component provides a secure chat interface using XMPP/Jabber with OMEMO encryption
+ * It integrates with Converse.js for the chat functionality and requires an XMPP server
  */
-class Chat extends React.PureComponent {
+export default @connect()
+@injectIntl
+class ChatTimeline extends React.PureComponent {
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   static propTypes = {
     dispatch: PropTypes.func.isRequired,
     intl: PropTypes.object.isRequired,
+    multiColumn: PropTypes.bool,
   };
 
   state = {
     loading: true,
-    error: null,
+    error: false,
+    converseLoaded: false,
   };
 
   componentDidMount() {
-    // Load the Converse.js script
-    this.loadConverseScript();
+    const { dispatch } = this.props;
     
-    // Load XMPP credentials
-    this.props.dispatch(fetchResource('/api/v1/xmpp/credentials'))
-      .then(response => {
-        if (response.data) {
-          this.setState({ loading: false });
-          this.initializeConverse(response.data);
-        }
-      })
-      .catch(error => {
+    // Step 1: Fetch XMPP credentials
+    dispatch(fetchXmppCredentials()).then(() => {
+      // Step 2: Load Converse.js scripts and stylesheets
+      this.loadConverseAssets().then(() => {
+        // Step 3: Initialize and mount Converse.js
+        dispatch(mountConverse())
+          .then(() => {
+            this.setState({ 
+              loading: false,
+              converseLoaded: true,
+            });
+          })
+          .catch((error) => {
+            console.error('Error mounting Converse.js:', error);
+            this.setState({ 
+              loading: false, 
+              error: true 
+            });
+          });
+      }).catch((error) => {
+        console.error('Error loading Converse.js assets:', error);
         this.setState({ 
           loading: false, 
-          error: error.message || 'Failed to load XMPP credentials'
+          error: true 
         });
       });
-  }
-  
-  loadConverseScript = () => {
-    if (window.converse) return;
-    
-    const script = document.createElement('script');
-    script.src = '/converse-assets/converse.min.js';
-    script.async = true;
-    
-    const stylesheet = document.createElement('link');
-    stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/converse-assets/converse.min.css';
-    
-    document.head.appendChild(stylesheet);
-    document.body.appendChild(script);
-  };
-  
-  initializeConverse = debounce((credentials) => {
-    if (!window.converse) {
-      setTimeout(() => this.initializeConverse(credentials), 500);
-      return;
-    }
-    
-    const domain = process.env.XMPP_DOMAIN || 'xmpp.example.com';
-    const boshUrl = process.env.XMPP_BOSH_URL || `https://bosh.${domain}/http-bind`;
-
-    // Initialize Converse.js with OMEMO encryption
-    window.converse.initialize({
-      authentication: 'login',
-      auto_login: true,
-      bosh_service_url: boshUrl,
-      jid: `${credentials.username}@${domain}`,
-      password: credentials.password,
-      allow_logout: false,
-      view_mode: 'embedded',
-      whitelisted_plugins: ['omemo', 'converse-chat-view'],
-      omemo_default: true, // Enable OMEMO encryption by default
-      allow_contact_requests: true,
-      show_client_info: false,
-      theme: 'concord',
-      message_archiving: 'always',
-      auto_away: 300,
-      auto_xa: 900,
-      locales_url: '/converse-assets/locales/',
-      assets_path: '/converse-assets/',
-      persistent_store: 'IndexedDB',
-      trusted: true,
-      debug: false,
-      singleton: true,
+    }).catch((error) => {
+      console.error('Error fetching XMPP credentials:', error);
+      this.setState({ 
+        loading: false, 
+        error: true 
+      });
     });
-  }, 500);
-  
-  render() {
-    const { intl } = this.props;
-    const { loading, error } = this.state;
+  }
+
+  componentWillUnmount() {
+    const { dispatch } = this.props;
+    if (this.state.converseLoaded) {
+      dispatch(unmountConverse());
+    }
+  }
+
+  loadConverseAssets = () => {
+    return new Promise((resolve, reject) => {
+      try {
+        if (window.converse) {
+          return resolve();
+        }
+        
+        // Load Converse.js script
+        const script = document.createElement('script');
+        script.src = '/converse-assets/converse.min.js';
+        script.async = true;
+        
+        // Load Converse.js stylesheet
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/converse-assets/converse.min.css';
+        
+        // Add to document head
+        document.head.appendChild(link);
+        document.head.appendChild(script);
+        
+        // Wait for script to load
+        script.onload = () => resolve();
+        script.onerror = (error) => reject(error);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  handleHeaderClick = () => {
+    this.column.scrollTop();
+  };
+
+  handleOpenSettings = () => {
+    const { dispatch, intl } = this.props;
     
+    dispatch(openModal('CHAT_SETTINGS', {
+      title: intl.formatMessage(messages.settings),
+    }));
+  };
+
+  setRef = (c) => {
+    this.column = c;
+  };
+
+  render() {
+    const { intl, multiColumn } = this.props;
+    const { loading, error } = this.state;
+
     return (
-      <Column label={intl.formatMessage(messages.title)}>
-        <div className="scrollable">
+      <Column bindToDocument={!multiColumn} ref={this.setRef}>
+        <ColumnHeader
+          icon='comment'
+          title={intl.formatMessage(messages.title)}
+          onClick={this.handleHeaderClick}
+          showBackButton
+          multiColumn={multiColumn}
+          onSettings={this.handleOpenSettings}
+        />
+        
+        <div className='chat-timeline__container'>
           {loading && (
-            <div className="empty-column-indicator">
-              <span className="loading-indicator__figurine" />
-              <span>Loading chat...</span>
+            <div className='chat-timeline__loading'>
+              <LoadingIndicator />
+              <span>{intl.formatMessage(messages.loading)}</span>
             </div>
           )}
           
           {error && (
-            <div className="empty-column-indicator">
-              <span>Error: {error}</span>
-              <span>Chat service may not be configured correctly</span>
+            <div className='chat-timeline__error'>
+              <span>{intl.formatMessage(messages.error)}</span>
             </div>
           )}
           
-          <div id="conversejs" className="chat-container" style={{ height: 'calc(100vh - 120px)' }} />
+          <div id='converse-container' className='chat-timeline__converse'></div>
         </div>
       </Column>
     );
   }
-}
-
-export default connect()(injectIntl(Chat)); 
+} 

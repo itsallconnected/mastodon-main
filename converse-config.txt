@@ -1,0 +1,48 @@
+// Converse.js configuration for Mastodon Chat integration
+const converseConfig = {
+    authentication: 'login',
+    auto_away: 300,
+    auto_reconnect: true,
+    bosh_service_url: 'http://redcted.social/http-bind', // Update to HTTPS when ready
+    websocket_url: 'ws://redcted.social/xmpp-websocket', // Update to WSS when ready
+    message_archiving: 'always',
+    view_mode: 'overlayed',
+    whitelisted_plugins: ['omemo', 'converse-muc-views'],
+    allow_contact_requests: true,
+    show_send_button: true,
+    assets_path: '/converse-assets',
+    allow_message_corrections: true,
+    allow_message_retraction: true,
+    auto_join_on_invite: true,
+    auto_join_private_chats: true,
+    clear_messages_on_reconnection: false,
+    hide_offline_users: false,
+    muc_show_join_leave: true,
+    notification_delay: 5000,
+    notification_icon: '/converse-assets/logo/conversejs-filled.svg',
+    play_sounds: true,
+    sounds_path: '/converse-assets/sounds/',
+    show_chat_state_notifications: true,
+    use_system_emojis: true,
+    visible_toolbar_buttons: {
+        call: false,
+        spoiler: true,
+        emoji: true,
+        toggle_occupants: true
+    },
+    omemo_default: true, // Enable OMEMO encryption by default
+    muc_domain: 'conference.redcted.social'
+};
+
+// Initialize Converse.js with this configuration
+function initializeConverse(jid, password) {
+    // Update any user-specific settings
+    const userConfig = {
+        ...converseConfig,
+        jid: jid,
+        password: password
+    };
+    
+    // Initialize Converse
+    converse.initialize(userConfig);
+} 
